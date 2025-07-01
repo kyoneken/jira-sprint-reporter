@@ -204,7 +204,7 @@ func (jc *JiraClient) getSprintsDirectly() ([]Sprint, error) {
 }
 
 func (jc *JiraClient) GetSprintIssues(sprintID int) ([]Issue, error) {
-	url := fmt.Sprintf("%s/rest/agile/1.0/sprint/%d/issue?fields=key,summary,issuetype,status,assignee,epic,customfield_10016", jc.BaseURL, sprintID)
+	url := fmt.Sprintf("%s/rest/agile/1.0/sprint/%d/issue?fields=key,assignee,epic", jc.BaseURL, sprintID)
 	
 	resp, err := jc.makeRequest(url)
 	if err != nil {
@@ -261,7 +261,7 @@ func displayIssues(issues []Issue, jiraBaseURL string) {
 	}
 
 	// Tab-separated header for Confluence table
-	fmt.Printf("KEY\tLINK\tTYPE\tSUMMARY\tEPIC\tSTORY POINTS\tSTATUS\tASSIGNEE\n")
+	fmt.Printf("LINK\tEPIC\tASSIGNEE\n")
 
 	for _, issue := range issues {
 		// Assignee
@@ -279,25 +279,10 @@ func displayIssues(issues []Issue, jiraBaseURL string) {
 			epic = issue.Fields.Epic.Name
 		}
 
-		// Story Points
-		storyPoints := "-"
-		if issue.Fields.StoryPoints != nil {
-			if *issue.Fields.StoryPoints == float64(int(*issue.Fields.StoryPoints)) {
-				storyPoints = fmt.Sprintf("%.0f", *issue.Fields.StoryPoints)
-			} else {
-				storyPoints = fmt.Sprintf("%.1f", *issue.Fields.StoryPoints)
-			}
-		}
-
 		// Tab-separated output
-		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			issue.Key,
+		fmt.Printf("%s\t%s\t%s\n",
 			link,
-			issue.Fields.IssueType.Name,
-			issue.Fields.Summary,
 			epic,
-			storyPoints,
-			issue.Fields.Status.Name,
 			assignee,
 		)
 	}
