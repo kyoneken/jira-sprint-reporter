@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Build binaries
+        run: |
+          # Build for multiple platforms
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/jira-sprint-reporter-linux-amd64
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bin/jira-sprint-reporter-linux-arm64
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o bin/jira-sprint-reporter-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o bin/jira-sprint-reporter-darwin-arm64
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o bin/jira-sprint-reporter-windows-amd64.exe
+
+      - name: Create checksums
+        run: |
+          cd bin
+          sha256sum * > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bin/*
+          body: |
+            ## Release ${{ github.ref_name }}
+            
+            ### Changes
+            - See commit history for detailed changes
+            
+            ### Downloads
+            - **Linux AMD64**: jira-sprint-reporter-linux-amd64
+            - **Linux ARM64**: jira-sprint-reporter-linux-arm64
+            - **macOS AMD64**: jira-sprint-reporter-darwin-amd64
+            - **macOS ARM64**: jira-sprint-reporter-darwin-arm64
+            - **Windows AMD64**: jira-sprint-reporter-windows-amd64.exe
+            
+            ### Installation
+            1. Download the appropriate binary for your platform
+            2. Make it executable: `chmod +x jira-sprint-reporter-*`
+            3. Move to your PATH: `mv jira-sprint-reporter-* /usr/local/bin/jira-sprint-reporter`
+            4. Create a `.env` file with your Jira configuration
+            
+            ### Verification
+            All binaries are provided with SHA256 checksums in `checksums.txt`.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
