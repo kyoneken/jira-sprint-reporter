@@ -1,4 +1,4 @@
-module jira-sprint-reporter
+module github.com/kyoneken/jira-sprint-reporter
 
 go 1.24.4
 
